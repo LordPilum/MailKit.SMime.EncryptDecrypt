@@ -1,4 +1,4 @@
-﻿namespace MailKit.SMime.EncryptDecrypt
+﻿namespace MailKit.SMime.EncryptDecrypt.Sender
 {
     public class SmtpProperties
     {

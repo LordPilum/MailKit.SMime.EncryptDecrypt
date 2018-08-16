@@ -3,11 +3,10 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 
-namespace MailKit.SMime.EncryptDecrypt
+namespace MailKit.SMime.EncryptDecrypt.Sender
 {
     public class SmtpSender
     {
-
         private static async Task Send(MimeMessage message, SmtpProperties props)
         {
             var option = SecureSocketOptions.Auto;
