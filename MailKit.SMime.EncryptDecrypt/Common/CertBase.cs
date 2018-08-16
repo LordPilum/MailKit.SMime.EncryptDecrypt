@@ -1,5 +1,7 @@
-﻿using System.Data.SQLite;
+﻿using System;
+using System.Data.SQLite;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using MimeKit.Cryptography;
 
 namespace MailKit.SMime.EncryptDecrypt.Common

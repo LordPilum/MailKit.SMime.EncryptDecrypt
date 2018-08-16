@@ -13,6 +13,13 @@ namespace MailKit.SMime.EncryptDecrypt.Common
             : base(CertBase.OpenDatabase("C:\\wherever\\certdb.sqlite"))
         {
         }
+
+        public void Import(X509Certificate2 certificate)
+        {
+            //var certificate = new X509Certificate2(@"C:\E\devspace\Cert\enoro.com.pfx", "KrengeTroll6", X509KeyStorageFlags.Exportable);
+            var bCert = Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(certificate);
+            Import(bCert);
+        }
     }
 
     public class SMimeExamples
