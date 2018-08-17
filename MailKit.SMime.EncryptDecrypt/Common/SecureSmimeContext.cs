@@ -10,7 +10,7 @@ namespace MailKit.SMime.EncryptDecrypt.Common
     public class SecureSmimeContext : DefaultSecureMimeContext
     {
         public SecureSmimeContext()
-            : base(CertBase.OpenDatabase("C:\\wherever\\certdb.sqlite"))
+            : base(CertBase.OpenDatabase("C:\\e\\certdb.sqlite"))
         {
         }
 
@@ -24,14 +24,6 @@ namespace MailKit.SMime.EncryptDecrypt.Common
 
     public class SMimeExamples
     {
-        public void RegisterMySecureMimeContext()
-        {
-            // Note: by registering our custom context it becomes the default S/MIME context
-            // instantiated by MimeKit when methods such as Encrypt(), Decrypt(), Sign(), and
-            // Verify() are used without an expliit context.
-            CryptographyContext.Register(typeof(SecureSmimeContext));
-        }
-
         public void Encrypt(MimeMessage message)
         {
             // encrypt our message body using our custom S/MIME cryptography context
@@ -74,6 +66,7 @@ namespace MailKit.SMime.EncryptDecrypt.Common
             }
         }
 
+        /*
         public void MultipartSign(MimeMessage message, X509Certificate2 certificate)
         {
             // digitally sign our message body using our custom S/MIME cryptography context
@@ -86,7 +79,7 @@ namespace MailKit.SMime.EncryptDecrypt.Common
 
                 message.Body = MultipartSigned.Create(ctx, signer, message.Body);
             }
-        }
+        }*/
 
         public void Pkcs7Sign(MimeMessage message)
         {
