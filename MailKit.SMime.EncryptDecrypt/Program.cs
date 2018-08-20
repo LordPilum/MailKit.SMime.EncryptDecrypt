@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using MailKit.Net.Smtp;
 using MailKit.SMime.EncryptDecrypt.Common;
 using MailKit.SMime.EncryptDecrypt.Sender;
+using MimeKit;
 using MimeKit.Cryptography;
+using Org.BouncyCastle.Security;
 
 namespace MailKit.SMime.EncryptDecrypt
 {
@@ -12,53 +17,83 @@ namespace MailKit.SMime.EncryptDecrypt
     {
         public static void Main(string[] args)
         {
-            CryptographyContext.Register(typeof(SecureSmimeContext));
-
-            var boot = new SecureSmimeContext();
-            var sax = boot.EnabledEncryptionAlgorithms;
-
-            var email = new Email
+            try
             {
-                Subject = "Test",
-                Sender = new EmailAddress
+                var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+                store.Open(OpenFlags.ReadOnly);
+
+                var collection = store.Certificates.Find(X509FindType.FindBySubjectName, "jan.kjetil.myklebust@hansencx.com", false); //TODO Change to true after test
+                var senderCertificate = collection[0];
+
+                /*store = new X509Store(StoreName.AddressBook, StoreLocation.CurrentUser);
+                store.Open(OpenFlags.ReadOnly);
+
+                collection = store.Certificates.Find(X509FindType.FindBySubjectName, "jan.kjetil.myklebust@hansencx.com", false);*/ //TODO Change to true after test
+                var recipientCertificate = collection[0];
+
+                var mimeMessage = new MimeMessage
                 {
-                    Address = "jan.kjetil.myklebust@hansencx.com",
-                    FriendlyName = "Jan Kjetil Myklebust",
-                    RecipientType = RecipientType.Undefined
-                },
-                Recipients = new List<EmailAddress>
+                    Date = DateTime.Now,
+                };
+
+                mimeMessage.From.Add(
+                    new SecureMailboxAddress(
+                        "jan.kjetil.myklebust@hansencx.com",
+                        "jan.kjetil.myklebust@hansencx.com",
+                        senderCertificate.Thumbprint));
+
+                mimeMessage.To.Add(
+                    new SecureMailboxAddress(
+                        "jan.kjetil.myklebust@hansencx.com",
+                        "jan.kjetil.myklebust@hansencx.com",
+                        recipientCertificate.Thumbprint));
+
+                mimeMessage.Subject = "S/MIME Test";
+
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("TestAttachmentFile")))
                 {
-                    new EmailAddress
+                    //Attachment
+                    var attachment = new MimePart(new ContentType("text", "plain"))
                     {
-                        Address = "jan.kjetil.myklebust@hansencx.com",
-                        FriendlyName = "Jan Kjetil Myklebust",
-                        RecipientType = RecipientType.To
+                        ContentTransferEncoding =
+                            ContentEncoding.Base64,
+                        ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
+                        FileName = "TestAttachmentFileName.txt",
+                        ContentObject = new ContentObject(stream)
+                    };
+
+                    var multipart = new Multipart("mixed") { attachment };
+
+                    mimeMessage.Body = multipart;
+
+                    //Sign / Encryption
+                    var signer = new CmsSigner(senderCertificate);
+
+                    var colle = new CmsRecipientCollection();
+                    var bountyRecipientCertificate = DotNetUtilities.FromX509Certificate(recipientCertificate);
+
+                    var recipient = new CmsRecipient(bountyRecipientCertificate);
+                    colle.Add(recipient);
+
+                    using (var ctx = new SecureSmimeContext())
+                    {
+                        var signed = MultipartSigned.Create(ctx, signer, mimeMessage.Body);
+                        var encrypted = ApplicationPkcs7Mime.Encrypt(ctx, colle, signed);
+                        mimeMessage.Body = MultipartSigned.Create(ctx, signer, encrypted);
                     }
-                },
-                Attachments = new List<MailAttachment>
-                {
-                    new MailAttachment
+
+                    //Sending
+                    using (var smtpClient = new SmtpClient())
                     {
-                        Charset = Encoding.UTF8.ToString(),
-                        Content = Encoding.UTF8.GetBytes("Testmail"),
-                        MediaType = "application",
-                        MediaSubType = "EDIFACT"
+                        smtpClient.Connect("mail.hansencx.com", 465);
+                        smtpClient.Send(mimeMessage);
                     }
                 }
-            };
-
-            var msg = EmailMapper.GetEdielMimeMessage(email);
-            var props = new SmtpProperties
+            }
+            catch (Exception e)
             {
-                EmailAddress = "jan.kjetil.myklebust@hansencx.com",
-                Host = "hansencx.com"
-            };
-
-            SmtpSender.Send(msg, props).GetAwaiter();
-
-            Console.WriteLine(msg.Attachments.FirstOrDefault()?.ToString());
-            //Console.WriteLine(boot.GetPreferredEncryptionAlgorithm());
-            Console.ReadKey();
+                Console.WriteLine(e);
+            }
         }
     }
 }
