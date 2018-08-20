@@ -12,6 +12,14 @@ namespace MailKit.SMime.EncryptDecrypt.Common
         public SecureSmimeContext()
             : base(CertBase.OpenDatabase("C:\\e\\certdb.sqlite"))
         {
+            Disable(EncryptionAlgorithm.Aes128);
+            Disable(EncryptionAlgorithm.Aes192);
+            Disable(EncryptionAlgorithm.Aes256);
+            Disable(EncryptionAlgorithm.Camellia128);
+            Disable(EncryptionAlgorithm.Camellia192);
+            Disable(EncryptionAlgorithm.Camellia256);
+            Disable(EncryptionAlgorithm.Cast5);
+            Disable(EncryptionAlgorithm.Seed);
         }
 
         public void Import(X509Certificate2 certificate)

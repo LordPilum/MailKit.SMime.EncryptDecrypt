@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using MailKit.SMime.EncryptDecrypt.Exceptions;
 using MimeKit;
+using MimeKit.Cryptography;
 
 namespace MailKit.SMime.EncryptDecrypt.Common
 {
@@ -28,10 +29,10 @@ namespace MailKit.SMime.EncryptDecrypt.Common
                 }
             };
 
-            foreach(var recipient in email.Recipients.FindAll(e => e.RecipientType.Equals(RecipientType.To)))
+            message.From.Add(new SecureMailboxAddress(email.Sender.FriendlyName, email.Sender.Address));
+            foreach (var recipient in email.Recipients.FindAll(e => e.RecipientType.Equals(RecipientType.To)))
             {
-                message.From.Add(new MailboxAddress(Encoding.ASCII, "", email.Sender.Address));
-                message.To.Add(new MailboxAddress(Encoding.ASCII, recipient.FriendlyName, recipient.Address));
+                message.To.Add(new SecureMailboxAddress(recipient.FriendlyName, recipient.Address));
             }
 
             var contentType =
@@ -42,6 +43,13 @@ namespace MailKit.SMime.EncryptDecrypt.Common
             }
 
             message.Body.Headers["Content-Type"] = contentType.ToString();
+
+
+            // encrypt our message body using our custom S/MIME cryptography context
+            using (var ctx = new SecureSmimeContext())
+            {
+                message.Body = ApplicationPkcs7Mime.Encrypt(ctx, message.To.Mailboxes, message.Body);
+            }
 
             return message;
         }
